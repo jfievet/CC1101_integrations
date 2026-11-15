@@ -11,6 +11,8 @@ rem Navigate timestamp script
 rem -----------------------------------------
 cd ..
 cd ..
+cd ..
+cd elan32_soc
 cd riscv_soc_shell
 cd rtl_common
 cd script
@@ -18,8 +20,10 @@ python generate_timestamp_pkg.py
 cd ..
 cd ..
 cd ..
-cd build
+cd ..
+cd platform
 cd de0
+cd build
 
 rem -----------------------------------------
 rem Navigate to Quartus project

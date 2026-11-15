@@ -9,9 +9,25 @@
 --  6       xxx    GND
 --  7       xxx    xxx
 --          ...    ...
--- 20       xxx    xxx
 --
 --
+--
+--
+-- 15 (6)  3.3      GND          
+-- 16 (5)  XXX      XXX
+-- 17 (4)  TX_CSN   TX_SCK      GPIO0_24    GPIO0_25    0   4
+-- 18 (3)  TX_MOSI  TX_MISO     GPIO0_26    GPIO0_27    1   5
+-- 19 (2)  RX_CSN   RX_SCK      GPIO0_28    GPIO0_29    2   6
+-- 20 (1)  RX_MOSI  RX_MISO     GPIO0_30    GPIO0_31    3   7
+--
+
+-- E07 M1101D SMA
+--
+-- 1    2       GND     VCC           
+-- 3    4       GD0     CSN
+-- 5    6       SCK     MOSI
+-- 7    8       MISO    GD02
+
 
 library IEEE;
 use IEEE.std_logic_1164.all;
@@ -40,7 +56,16 @@ entity top is
         DRAM_BA_0  : out std_logic;
         DRAM_BA_1  : out std_logic;
         DRAM_CLK   : out std_logic;
-        DRAM_CKE   : out std_logic
+        DRAM_CKE   : out std_logic;
+
+        GPIO0_D_24  : out std_logic; 
+        GPIO0_D_26  : out std_logic;     
+        GPIO0_D_28  : out std_logic; 
+        GPIO0_D_30  : out std_logic;  
+        GPIO0_D_25  : out std_logic; 
+        GPIO0_D_27  : in std_logic;     
+        GPIO0_D_29  : out std_logic; 
+        GPIO0_D_31  : in std_logic
     );
 end entity top;
 
@@ -121,6 +146,13 @@ architecture rtl of top is
     signal sdram_addr_int  : std_logic_vector(11 downto 0);
     signal sdram_dqm_int   : std_logic_vector(1 downto 0);
     signal sdram_dq_int    : std_logic_vector(15 downto 0);
+
+    --------------------------------------------------------
+    -- GPIOs signals
+    --------------------------------------------------------
+
+    signal gpio_in  : std_logic_vector(31 downto 0);
+    signal gpio_out : std_logic_vector(31 downto 0);
 
     --------------------------------------------------------
     -- Misc signals
@@ -252,8 +284,24 @@ nco_pro : process (clk_main, rst_main)
             sdram_ba    => sdram_ba_int,
             sdram_addr  => sdram_addr_int,
             sdram_dqm   => sdram_dqm_int,
-            sdram_dq    => DRAM_DQ
+            sdram_dq    => DRAM_DQ,
+
+            --GPIO
+            gpio_in  => gpio_in,
+            gpio_out => gpio_out
         );
+
+        --gpio_in <= gpio_out;
+
+        GPIO0_D_24  <= gpio_out(0);
+        GPIO0_D_26  <= gpio_out(1);  
+        GPIO0_D_28  <= gpio_out(2);
+        GPIO0_D_30  <= gpio_out(3);
+        GPIO0_D_25  <= gpio_out(4); 
+        GPIO0_D_29  <= gpio_out(6);
+
+        gpio_in(5)  <= GPIO0_D_27;
+        gpio_in(7)  <= GPIO0_D_31; 
 
     --------------------------------------------------------
     -- SDRAM

@@ -74,6 +74,14 @@ set_location_assignment PIN_G3 -to BUTTON[1]
 set_location_assignment PIN_H2 -to BUTTON[0]
 set_location_assignment PIN_AA16 -to GPIO0_D_1
 set_location_assignment PIN_AB16 -to GPIO0_D_0
+set_location_assignment PIN_Y10 -to GPIO0_D_24
+set_location_assignment PIN_T8  -to GPIO0_D_26
+set_location_assignment PIN_W7  -to GPIO0_D_28
+set_location_assignment PIN_V5  -to GPIO0_D_30
+set_location_assignment PIN_W10 -to GPIO0_D_25
+set_location_assignment PIN_V8  -to GPIO0_D_27
+set_location_assignment PIN_W6  -to GPIO0_D_29
+set_location_assignment PIN_U7  -to GPIO0_D_31
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to CLOCK_50
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LEDG[9]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LEDG[8]
@@ -100,45 +108,54 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to BUTTON[1]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to BUTTON[0]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO0_D_1
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO0_D_0
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO0_D_24
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO0_D_26
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO0_D_28
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO0_D_30
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO0_D_25
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO0_D_27
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO0_D_29
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO0_D_31
+
 set_global_assignment -name LL_ROOT_REGION ON -section_id "Root Region"
 set_global_assignment -name LL_MEMBER_STATE LOCKED -section_id "Root Region"
 set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/rtl_common/src/axi_slave_reg_bank.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/rtl_common/src/axi_slave_reg_bank_pkg.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/rtl_common/src/rams_sp_wf.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/rtl_common/src/utilities_pkg.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/rtl_common/src/uart.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/rtl_common/src/axi_uart.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/rtl_common/src/axi_ram.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/rtl_common/src/axi_lite_interconnect_pkg.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/rtl_common/src/axi_lite_interconnect.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/rtl_common/src/axi_interconnect_single.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/rtl_common/src/axi_gpio.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/rtl_common/src/axi_fifo.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/rtl_common/src/time_elapsed.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/rtl_common/src/trng_entropy_source.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/rtl_common/src/trng_prbs32.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/rtl_common/src/trng_random_generator.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/rtl_common/src/trng_ring_oscillator.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/rtl_common/src/axi_trng.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/rtl_common/src/axi_lite_sdram.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/rtl_common/src/sdram_controller.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/src/timestamp_pkg.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/src/soc.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/src/rams_sp_wf_pkg.vhd
-set_global_assignment -name VHDL_FILE ../../../riscv_soc_shell/src/axi_soc_subsystem.vhd
-set_global_assignment -name VHDL_FILE ../../../elan32/elan_decoder.vhd
-set_global_assignment -name VHDL_FILE ../../../elan32/elan_register_file.vhd
-set_global_assignment -name VHDL_FILE ../../../elan32/elan_pc.vhd
-set_global_assignment -name VHDL_FILE ../../../elan32/elan_comparator.vhd
-set_global_assignment -name VHDL_FILE ../../../elan32/elan_alu.vhd
-set_global_assignment -name VHDL_FILE ../../../elan32/elan_multiplier.vhd
-set_global_assignment -name VHDL_FILE ../../../elan32/elan_divider.vhd
-set_global_assignment -name VHDL_FILE ../../../elan32/elan_axi_master.vhd
-set_global_assignment -name VHDL_FILE ../../../elan32/elan_shifter.vhd
-set_global_assignment -name VHDL_FILE ../../../elan32/elan_core.vhd
-set_global_assignment -name VHDL_FILE ../../../src/riscv_wrapper.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/rtl_common/src/axi_slave_reg_bank.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/rtl_common/src/axi_slave_reg_bank_pkg.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/rtl_common/src/rams_sp_wf.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/rtl_common/src/utilities_pkg.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/rtl_common/src/uart.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/rtl_common/src/axi_uart.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/rtl_common/src/axi_ram.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/rtl_common/src/axi_lite_interconnect_pkg.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/rtl_common/src/axi_lite_interconnect.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/rtl_common/src/axi_interconnect_single.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/rtl_common/src/axi_gpio.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/rtl_common/src/axi_fifo.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/rtl_common/src/time_elapsed.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/rtl_common/src/trng_entropy_source.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/rtl_common/src/trng_prbs32.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/rtl_common/src/trng_random_generator.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/rtl_common/src/trng_ring_oscillator.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/rtl_common/src/axi_trng.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/rtl_common/src/axi_lite_sdram.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/rtl_common/src/sdram_controller.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/src/timestamp_pkg.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/src/soc.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/src/rams_sp_wf_pkg.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/riscv_soc_shell/src/axi_soc_subsystem.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/elan32/elan_decoder.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/elan32/elan_register_file.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/elan32/elan_pc.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/elan32/elan_comparator.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/elan32/elan_alu.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/elan32/elan_multiplier.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/elan32/elan_divider.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/elan32/elan_axi_master.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/elan32/elan_shifter.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/elan32/elan_core.vhd
+set_global_assignment -name VHDL_FILE ../../../../elan32_soc/src/riscv_wrapper.vhd
 set_global_assignment -name VHDL_FILE ../src/top.vhd
 set_global_assignment -name VHDL_FILE ../src/clk_rst_gen.vhd
 set_global_assignment -name SDC_FILE top.sdc
