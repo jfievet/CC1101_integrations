@@ -20,7 +20,3 @@ REM Optional: Generate a hex file
 "%RISCV_GCC_PATH%\%RISCV_PREFIX%objcopy.exe" -O ihex main.elf main.hex
 
 echo Compilation finished.
-
-python xilinx_hex_to_bytes.py
-
-echo FPGA ram generated.

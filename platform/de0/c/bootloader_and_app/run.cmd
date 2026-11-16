@@ -5,7 +5,7 @@ REM ------------------------------------------------------------------
 REM -- Configuration
 REM ------------------------------------------------------------------
 
-set APP_DIR=snake
+set APP_DIR=gpio_write_loop
 set "APP_MEMORY=BRAM"
 
 REM Select the application linker script before generating or compiling files.
@@ -87,7 +87,7 @@ REM Show App size summary
 REM Optional: Generate a hex file
 "%RISCV_GCC_PATH%\%RISCV_PREFIX%objcopy.exe" -O ihex main2.elf main2.hex
 
-python xilinx_hex_to_bytes.py
+rem python xilinx_hex_to_bytes.py
 python xilinx_hex_to_ram_txt.py
  
 echo FPGA ram generated.0
