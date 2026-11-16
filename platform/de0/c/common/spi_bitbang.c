@@ -153,7 +153,9 @@ void cc1101_strobe(uint8_t module, uint8_t cmd)
 
 int cc1101_read_burst(uint8_t module, uint8_t addr, uint8_t *data, size_t len)
 {
-    if (!data || !len || addr > 0x3fu || (addr > 0x2eu && addr != 0x3fu))
+    if (!data || !len || addr > 0x3fu ||
+        (addr > 0x2eu && addr != 0x3eu && addr != 0x3fu) ||
+        (addr == 0x3eu && len > 8u))
         return SPI_BB_EINVAL;
     int rc = start_transaction(module);
     if (rc != SPI_BB_OK) return rc;
@@ -165,7 +167,8 @@ int cc1101_read_burst(uint8_t module, uint8_t addr, uint8_t *data, size_t len)
 
 int cc1101_write_burst(uint8_t module, uint8_t addr, const uint8_t *data, size_t len)
 {
-    if (!data || !len || (addr > 0x2eu && addr != 0x3fu))
+    if (!data || !len || (addr > 0x2eu && addr != 0x3eu && addr != 0x3fu) ||
+        (addr == 0x3eu && len > 8u))
         return SPI_BB_EINVAL;
     int rc = start_transaction(module);
     if (rc != SPI_BB_OK) return rc;
