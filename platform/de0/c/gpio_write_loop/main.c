@@ -425,17 +425,23 @@ static void radio_print_bytes(const uint8_t *bytes, unsigned int count)
     }
 }
 
-static void radio_print_packet(const uint8_t *packet, bool offset_valid,
-                               uint8_t offset_raw)
+struct radio_observation {
+    bool complete;
+    bool offset_valid;
+    uint8_t offset_raw;
+    uint8_t packet[10];
+};
+
+static void radio_print_measurements(const struct radio_observation *observation)
 {
-    dprint("TX: ");
-    radio_print_bytes(radio_payload, sizeof(radio_payload));
-    dprint("\r\n");
-    wait_uart_tx();
-    dprint("RX: ");
-    radio_print_bytes(packet, sizeof(radio_payload));
-    dprint("\r\n");
-    wait_uart_tx();
+    if (!observation->complete) {
+        dprint("RSSI: unavailable, LQI: unavailable, CRC: unavailable\r\n");
+        wait_uart_tx();
+        dprint("Frequency offset: unavailable\r\n");
+        wait_uart_tx();
+        return;
+    }
+    const uint8_t *packet = observation->packet;
     int raw = packet[8];
     if (raw >= 128) raw -= 256;
     int half_dbm = raw - 148; /* RSSI_signed/2 - 74 dBm */
@@ -445,8 +451,8 @@ static void radio_print_packet(const uint8_t *packet, bool offset_valid,
            (magnitude & 1u) ? 5 : 0, (int)(packet[9] & 0x7Fu),
            (packet[9] & 0x80u) ? "OK" : "ERROR");
     wait_uart_tx();
-    if (offset_valid) {
-        int offset = offset_raw;
+    if (observation->offset_valid) {
+        int offset = observation->offset_raw;
         if (offset >= 128) offset -= 256;
         /* FREQEST is signed, with resolution FXTAL/2^14. Round the
          * magnitude to nearest Hz, then restore the sign (no float). */
@@ -461,8 +467,24 @@ static void radio_print_packet(const uint8_t *packet, bool offset_valid,
     wait_uart_tx();
 }
 
-static enum radio_result radio_exchange(void)
+static void radio_print_packet(const struct radio_observation *observation)
 {
+    dprint("TX: ");
+    radio_print_bytes(radio_payload, sizeof(radio_payload));
+    dprint("\r\n");
+    wait_uart_tx();
+    dprint("RX: ");
+    radio_print_bytes(observation->packet, sizeof(radio_payload));
+    dprint("\r\n");
+    wait_uart_tx();
+    radio_print_measurements(observation);
+}
+
+/* Acquisition is silent: callers choose per-packet or periodic reporting. */
+static enum radio_result radio_exchange(struct radio_observation *observation)
+{
+    observation->complete = false;
+    observation->offset_valid = false;
     enum radio_result result = radio_flush(SPI_MODULE_TX, true);
     if (result != RADIO_OK) return result;
     result = radio_flush(SPI_MODULE_RX, true);
@@ -489,8 +511,6 @@ static enum radio_result radio_exchange(void)
         if (bytes & 0x80u) return RADIO_ERROR;
         if ((bytes & 0x7Fu) == 0u && (state & 0x1Fu) == RADIO_IDLE) break;
         if (read_elapsed_time() - start >= radio_timeout) {
-            dprint("TX completion timeout.\r\n");
-            wait_uart_tx();
             return RADIO_TIMEOUT;
         }
     }
@@ -503,38 +523,61 @@ static enum radio_result radio_exchange(void)
             return RADIO_ERROR;
         if (bytes & 0x80u) return RADIO_ERROR;
         if ((bytes & 0x7Fu) >= 10u) {
-            uint8_t packet[10];
-            if ((bytes & 0x7Fu) != sizeof(packet)) {
-                dprint("Unexpected RX FIFO length: %d\r\n", (int)(bytes & 0x7Fu));
-                wait_uart_tx();
+            if ((bytes & 0x7Fu) != sizeof(observation->packet)) {
                 return RADIO_ERROR;
             }
             result = radio_wait_state(SPI_MODULE_RX, RADIO_IDLE, true);
             if (result != RADIO_OK) return result;
-            if (cc1101_read_burst(SPI_MODULE_RX, RADIO_FIFO, packet,
-                                  sizeof(packet)) != SPI_BB_OK)
+            if (cc1101_read_burst(SPI_MODULE_RX, RADIO_FIFO, observation->packet,
+                                  sizeof(observation->packet)) != SPI_BB_OK)
                 return RADIO_ERROR;
+            observation->complete = true;
             /* RX is now IDLE: capture this packet's estimate before any
              * restart/flush. A missing estimate does not reject payload. */
-            uint8_t offset_raw = 0u;
-            bool offset_valid = cc1101_read_reg_ex(SPI_MODULE_RX, RADIO_FREQEST,
-                                                  &offset_raw) == SPI_BB_OK;
-            radio_print_packet(packet, offset_valid, offset_raw);
-            if (!(packet[9] & 0x80u)) return RADIO_CRC_ERROR;
+            observation->offset_valid = cc1101_read_reg_ex(SPI_MODULE_RX,
+                RADIO_FREQEST, &observation->offset_raw) == SPI_BB_OK;
+            if (!(observation->packet[9] & 0x80u)) return RADIO_CRC_ERROR;
             for (unsigned int i = 0; i < sizeof(radio_payload); ++i) {
-                if (packet[i] != radio_payload[i]) return RADIO_MISMATCH;
+                if (observation->packet[i] != radio_payload[i]) return RADIO_MISMATCH;
             }
             return RADIO_OK;
         }
         if (read_elapsed_time() - start >= radio_timeout) {
-            dprint("RX TIMEOUT: FIFO contains %d of 10 bytes.\r\n", (int)bytes);
-            wait_uart_tx();
             return RADIO_TIMEOUT;
         }
     }
 }
 
-static void radio_packet_test(const struct radio_test_profile *profile)
+static void radio_print_counts(const char *name, unsigned int attempts,
+                                const unsigned int *counts)
+{
+    dprint("%s: attempts=%d PASS=%d CRC=%d\r\n", name, (int)attempts,
+           (int)counts[RADIO_OK], (int)counts[RADIO_CRC_ERROR]);
+    wait_uart_tx();
+    dprint("MISMATCH=%d TIMEOUT=%d RADIO=%d\r\n",
+           (int)counts[RADIO_MISMATCH], (int)counts[RADIO_TIMEOUT],
+           (int)counts[RADIO_ERROR]);
+    wait_uart_tx();
+}
+
+static void radio_print_period(unsigned int attempts, const unsigned int *counts,
+                                unsigned int total, const unsigned int *totals,
+                                const struct radio_observation *last)
+{
+    bool error = counts[RADIO_CRC_ERROR] || counts[RADIO_MISMATCH] ||
+                 counts[RADIO_TIMEOUT] || counts[RADIO_ERROR];
+    dprint("Period status: %s\r\n", attempts == 0u ? "NO COMPLETED PACKET" :
+           (error ? "ERROR" : "OK"));
+    wait_uart_tx();
+    radio_print_counts("Period", attempts, counts);
+    radio_print_counts("Totals", total, totals);
+    dprint("Last complete RX packet in this period:\r\n");
+    wait_uart_tx();
+    radio_print_measurements(last);
+}
+
+static void radio_packet_test(const struct radio_test_profile *profile,
+                              bool continuous)
 {
     uint32_t frequency = read_reg(TIME_FREQ_ADDR);
     if (frequency == 0u) {
@@ -547,6 +590,10 @@ static void radio_packet_test(const struct radio_test_profile *profile)
     uint64_t interval = ((uint64_t)frequency + 1u) / 2u;
     unsigned int counts[6] = {0};
     unsigned int attempts = 0;
+    unsigned int period_counts[6] = {0};
+    unsigned int period_attempts = 0;
+    struct radio_observation last = {0};
+    uint64_t report_start = 0;
     static const char *const labels[] = {
         "PASS", "CANCELLED", "TIMEOUT", "RADIO ERROR", "CRC ERROR", "PAYLOAD MISMATCH"
     };
@@ -563,6 +610,10 @@ static void radio_packet_test(const struct radio_test_profile *profile)
     wait_uart_tx();
     dprint("Press Q to return to the menu.\r\n");
     wait_uart_tx();
+    if (continuous) {
+        dprint("Packets run back-to-back; reports every second.\r\n");
+        wait_uart_tx();
+    }
 
     for (uint8_t module = SPI_MODULE_TX; module <= SPI_MODULE_RX; ++module) {
         enum radio_result result = radio_configure(module, frequency, profile);
@@ -575,19 +626,27 @@ static void radio_packet_test(const struct radio_test_profile *profile)
             goto cleanup;
         }
     }
+    report_start = read_elapsed_time();
     while (!radio_quit()) {
         uint64_t start = read_elapsed_time();
-        enum radio_result result = radio_exchange();
+        struct radio_observation observation = {0};
+        enum radio_result result = radio_exchange(&observation);
         if (result == RADIO_QUIT) break;
         ++attempts;
         ++counts[result];
-        dprint("Packet %d: %s\r\n", (int)attempts, labels[result]);
-        wait_uart_tx();
-        dprint("Totals: PASS=%d CRC=%d MISMATCH=%d TIMEOUT=%d RADIO=%d\r\n",
-               (int)counts[RADIO_OK], (int)counts[RADIO_CRC_ERROR],
-               (int)counts[RADIO_MISMATCH], (int)counts[RADIO_TIMEOUT],
-               (int)counts[RADIO_ERROR]);
-        wait_uart_tx();
+        ++period_attempts;
+        ++period_counts[result];
+        if (observation.complete) last = observation;
+        if (!continuous) {
+            if (observation.complete) radio_print_packet(&observation);
+            dprint("Packet %d: %s\r\n", (int)attempts, labels[result]);
+            wait_uart_tx();
+            dprint("Totals: PASS=%d CRC=%d MISMATCH=%d TIMEOUT=%d RADIO=%d\r\n",
+                   (int)counts[RADIO_OK], (int)counts[RADIO_CRC_ERROR],
+                   (int)counts[RADIO_MISMATCH], (int)counts[RADIO_TIMEOUT],
+                   (int)counts[RADIO_ERROR]);
+            wait_uart_tx();
+        }
         if (result != RADIO_OK) {
             enum radio_result tx = radio_flush(SPI_MODULE_TX, true);
             enum radio_result rx = radio_flush(SPI_MODULE_RX, true);
@@ -599,9 +658,21 @@ static void radio_packet_test(const struct radio_test_profile *profile)
                 break;
             }
         }
-        /* Start-to-start spacing, without catch-up after slow attempts. */
-        while (read_elapsed_time() - start < interval) {
-            if (radio_quit()) goto cleanup;
+        if (continuous) {
+            if (read_elapsed_time() - report_start >= frequency) {
+                radio_print_period(period_attempts, period_counts, attempts, counts, &last);
+                for (unsigned int i = 0; i < 6u; ++i) period_counts[i] = 0u;
+                period_attempts = 0u;
+                last.complete = false;
+                last.offset_valid = false;
+                /* Start the next period after UART output, no catch-up. */
+                report_start = read_elapsed_time();
+            }
+        } else {
+            /* Preserve start-to-start spacing in modes 5 and 6. */
+            while (read_elapsed_time() - start < interval) {
+                if (radio_quit()) goto cleanup;
+            }
         }
     }
 
@@ -613,6 +684,11 @@ cleanup:
             wait_uart_tx();
         }
         cc1101_deselect(module);
+    }
+    if (continuous && period_attempts != 0u) {
+        dprint("Final partial period:\r\n");
+        wait_uart_tx();
+        radio_print_period(period_attempts, period_counts, attempts, counts, &last);
     }
     dprint("Summary: attempts=%d PASS=%d CRC=%d MISMATCH=%d TIMEOUT=%d RADIO=%d\r\n",
            (int)attempts, (int)counts[RADIO_OK], (int)counts[RADIO_CRC_ERROR],
@@ -634,6 +710,8 @@ static void show_menu(void)
     dprint("5. GFSK TX/RX packet test (4800 bit/s)\r\n");
     wait_uart_tx();
     dprint("6. GFSK TX/RX packet test (250000 bit/s)\r\n");
+    wait_uart_tx();
+    dprint("7. Continuous 4800 bit/s packet test (1-second report)\r\n");
     wait_uart_tx();
     dprint("Select an option: ");
     wait_uart_tx();
@@ -666,13 +744,16 @@ int main(void)
             gpio_scope_test();
             break;
         case '5':
-            radio_packet_test(&radio_test_4800);
+            radio_packet_test(&radio_test_4800, false);
             break;
         case '6':
-            radio_packet_test(&radio_test_250000);
+            radio_packet_test(&radio_test_250000, false);
+            break;
+        case '7':
+            radio_packet_test(&radio_test_4800, true);
             break;
         default:
-            dprint("Invalid option. Please select 1, 2, 3, 4, 5 or 6.\r\n");
+            dprint("Invalid option. Please select 1, 2, 3, 4, 5, 6 or 7.\r\n");
             wait_uart_tx();
             break;
         }
